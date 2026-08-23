@@ -1,4 +1,7 @@
+const APP_ERROR_MARKER = Symbol.for("smart-supply-dispenser.app-error");
+
 export class AppError extends Error {
+  readonly [APP_ERROR_MARKER] = true;
   readonly status: number;
   readonly code: string;
   readonly fieldErrors?: Record<string, string>;
@@ -10,6 +13,15 @@ export class AppError extends Error {
     this.code = code;
     this.fieldErrors = fieldErrors;
   }
+}
+
+export function isAppError(error: unknown): error is AppError {
+  return typeof error === "object"
+    && error !== null
+    && (error as Record<PropertyKey, unknown>)[APP_ERROR_MARKER] === true
+    && typeof (error as { status?: unknown }).status === "number"
+    && typeof (error as { code?: unknown }).code === "string"
+    && typeof (error as { message?: unknown }).message === "string";
 }
 
 export function notFound(detail = "ไม่พบข้อมูลที่ร้องขอ"): AppError {

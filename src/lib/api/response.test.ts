@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { assertSameOrigin } from "./response";
 
 const originalAuthUrl = process.env.AUTH_URL;
@@ -70,5 +70,19 @@ describe("assertSameOrigin", () => {
 
   it("rejects a malformed Origin header", () => {
     expectCsrfRejection(new Request("http://web:3000/api/v1/admin/dispensers", { headers: { Origin: "null" } }));
+  });
+});
+
+describe("problemResponse", () => {
+  it("preserves an AppError created by another route bundle", async () => {
+    vi.resetModules();
+    const firstErrorsModule = await import("@/lib/server/errors");
+    const crossBundleError = new firstErrorsModule.AppError(404, "not_found", "ไม่พบเครื่องแจกสิ่งของ");
+    vi.resetModules();
+    const secondResponseModule = await import("./response");
+
+    const response = secondResponseModule.problemResponse(crossBundleError, "test-trace-id");
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toMatchObject({ code: "not_found", detail: "ไม่พบเครื่องแจกสิ่งของ", trace_id: "test-trace-id" });
   });
 });

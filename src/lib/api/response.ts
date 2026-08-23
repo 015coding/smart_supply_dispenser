@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { AppError } from "@/lib/server/errors";
+import { AppError, isAppError } from "@/lib/server/errors";
 
 export interface ProblemDetails {
   type: string;
@@ -28,7 +28,7 @@ export function noStore(headers?: HeadersInit): Headers {
 }
 
 export function problemResponse(error: unknown, requestTraceId = traceId()): Response {
-  const appError = error instanceof AppError ? error : new AppError(500, "internal_error", "เกิดข้อผิดพลาดภายในระบบ");
+  const appError = isAppError(error) ? error : new AppError(500, "internal_error", "เกิดข้อผิดพลาดภายในระบบ");
   const body: ProblemDetails = {
     type: "about:blank",
     title: appError.status >= 500 ? "Internal Server Error" : "Request Error",

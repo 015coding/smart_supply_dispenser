@@ -9,12 +9,12 @@ export const PUT = apiRoute(async (request: Request, context: { params: Promise<
   const admin = await requireAdmin(request);
   assertSameOrigin(request);
   const { code } = await context.params;
+  const existing = await store.getAdminDispenser(code);
   const form = await request.formData();
   const file = form.get("image");
   if (!(file instanceof File)) throw new Error("กรุณาแนบไฟล์รูปภาพในช่อง image");
   const url = await uploadDispenserImage(code.toUpperCase(), file);
-  const previous = (await store.getAdminDispenser(code)).imageUrl;
-  if (previous) await deleteDispenserImage(previous);
+  if (existing.imageUrl) await deleteDispenserImage(existing.imageUrl);
   return json(dispenserToAdminApi(await store.setDispenserImage(code, url, admin.actor)), { headers: { "Cache-Control": "no-store" } });
 });
 
