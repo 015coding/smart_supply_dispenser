@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { availableBundleCount, deriveServiceStatus, validatePublishInput } from "@/lib/domain/rules";
+import { applyStockChange, availableBundleCount, deriveServiceStatus, isLowStock, validatePublishInput } from "@/lib/domain/rules";
 import type { DispenserChannel } from "@/lib/domain/types";
 
 const channel = (overrides: Partial<DispenserChannel> = {}): DispenserChannel => ({
@@ -41,5 +41,17 @@ describe("dispenser domain rules", () => {
     expect(result.fieldErrors.name).toBeDefined();
     expect(result.fieldErrors.latitude).toBeDefined();
     expect(result.fieldErrors.channels).toBeDefined();
+  });
+
+  it("keeps stock movements inside the channel capacity and requires adjustment reasons", () => {
+    expect(applyStockChange(channel({ capacity: 20, balance: 10 }), { type: "refill", amount: 5 })).toEqual({
+      balanceBefore: 10,
+      balanceAfter: 15,
+      delta: 5
+    });
+    expect(() => applyStockChange(channel({ capacity: 10, balance: 10 }), { type: "refill", amount: 1 })).toThrow("ความจุ");
+    expect(() => applyStockChange(channel({ balance: 10 }), { type: "adjustment", targetBalance: 5 })).toThrow("เหตุผล");
+    expect(isLowStock(channel({ balance: 5, lowStockThreshold: 5 }))).toBe(true);
+    expect(isLowStock(channel({ balance: 0, lowStockThreshold: 5 }))).toBe(false);
   });
 });
