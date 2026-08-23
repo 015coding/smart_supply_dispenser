@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, Clock3, RefreshCw, Truck } from "lucide-react";
+import { AlertTriangle, Clock3, RadioTower, RefreshCw, Truck } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch, ApiClientError } from "@/lib/api/client";
@@ -14,7 +14,7 @@ interface DashboardData {
   alerts: AdminAlert[];
   recent_dispensers: AdminDispenser[];
   recent_activity: AdminActivity[];
-  completed_recipient_chart: Array<{ serviceDay: string; recipientCount: number }>;
+  device_report_chart: Array<{ serviceDay: string; reportCount: number }>;
 }
 
 function errorMessage(error: unknown): string {
@@ -52,8 +52,8 @@ export function AdminDashboard() {
     }
   }
 
-  const maxChart = useMemo(() => Math.max(1, ...(data?.completed_recipient_chart.map((item) => item.recipientCount) ?? [1])), [data]);
-  const completedRecipientTotal = useMemo(() => data?.completed_recipient_chart.reduce((total, item) => total + item.recipientCount, 0) ?? 0, [data]);
+  const maxChart = useMemo(() => Math.max(1, ...(data?.device_report_chart.map((item) => item.reportCount) ?? [1])), [data]);
+  const deviceReportTotal = useMemo(() => data?.device_report_chart.reduce((total, item) => total + item.reportCount, 0) ?? 0, [data]);
 
   return <>
     <div className="admin-topbar"><div><p className="eyebrow">พื้นที่ผู้ดูแล</p><h1>ภาพรวมระบบ</h1><p>ติดตามความพร้อมของจุดแจกและการให้บริการล่าสุด</p></div><div className="admin-actions"><button className="button button-secondary" type="button" onClick={() => void load()} disabled={loading}><RefreshCw size={15} />รีเฟรช</button><Link className="button button-primary" href="/admin/dispensers/new"><Truck size={15} />สร้างเครื่องใหม่</Link></div></div>
@@ -68,7 +68,7 @@ export function AdminDashboard() {
       </section>
       <div className="admin-columns">
         <section className="admin-panel"><div className="section-heading"><div><h2>แจ้งเตือนที่ต้องตรวจสอบ</h2><p>การรับทราบไม่ถือว่าแก้ไขสาเหตุแล้ว</p></div><Link className="text-link" href="/admin/dispensers">ดูเครื่องทั้งหมด →</Link></div>{data.alerts.length ? <div className="alert-list">{data.alerts.slice(0, 6).map((alert) => <div className={`alert-item${alert.type === "out_of_stock" || alert.type === "discrepancy" ? " alert-danger" : ""}`} key={alert.id}><div><strong><AlertTriangle size={14} style={{ verticalAlign: "-2px", marginRight: 5 }} />{alert.title}</strong><p>{alert.detail}</p></div><button className="button button-quiet" type="button" onClick={() => void acknowledge(alert.id)} disabled={Boolean(alert.acknowledged_at)}>{alert.acknowledged_at ? "รับทราบแล้ว" : "รับทราบ"}</button></div>)}</div> : <div className="empty-state">ยังไม่มีแจ้งเตือนที่ต้องตรวจสอบ</div>}</section>
-        <section className="admin-panel"><div className="section-heading"><div><h2>ผู้รับของสำเร็จ</h2><p>{data.range.from} ถึง {data.range.to}</p></div><div className="dashboard-chart-summary"><span className="summary-pill">รวม {completedRecipientTotal.toLocaleString("th-TH")} คน</span><CheckCircle2 size={19} color="var(--teal)" /></div></div><div className="completed-recipient-chart" role="img" aria-label={`กราฟผู้รับของสำเร็จรวม ${completedRecipientTotal} คน`}>{data.completed_recipient_chart.map((item) => <div className="completed-chart-day" key={item.serviceDay} title={`${item.serviceDay}: ${item.recipientCount} คน`}><strong className="completed-chart-count">{item.recipientCount.toLocaleString("th-TH")}</strong><div className="completed-chart-track"><span className={`completed-chart-bar${item.recipientCount === 0 ? " empty" : ""}`} style={{ height: item.recipientCount === 0 ? 4 : `${(item.recipientCount / maxChart) * 100}%` }} /></div><small>{item.serviceDay.slice(8)}</small></div>)}</div></section>
+        <section className="admin-panel"><div className="section-heading"><div><h2>รายงานการแจกจากเครื่อง</h2><p>{data.range.from} ถึง {data.range.to} · นับเมื่อ server รับ report ครั้งแรก</p></div><div className="dashboard-chart-summary"><span className="summary-pill">รวม {deviceReportTotal.toLocaleString("th-TH")} ครั้ง</span><RadioTower size={19} color="var(--teal)" /></div></div><div className="completed-recipient-chart" role="img" aria-label={`กราฟรายงานจากเครื่องรวม ${deviceReportTotal} ครั้ง`}>{data.device_report_chart.map((item) => <div className="completed-chart-day" key={item.serviceDay} title={`${item.serviceDay}: ${item.reportCount} ครั้ง`}><strong className="completed-chart-count">{item.reportCount.toLocaleString("th-TH")}</strong><div className="completed-chart-track"><span className={`completed-chart-bar${item.reportCount === 0 ? " empty" : ""}`} style={{ height: item.reportCount === 0 ? 4 : `${(item.reportCount / maxChart) * 100}%` }} /></div><small>{item.serviceDay.slice(8)}</small></div>)}</div></section>
       </div>
       <div className="admin-columns">
         <section className="admin-panel"><div className="section-heading"><div><h2>เครื่องที่มีการเปลี่ยนแปลงล่าสุด</h2><p>เปิดรายละเอียดเพื่อแก้ไขข้อมูลหรือสต็อก</p></div><Link className="text-link" href="/admin/dispensers">ดูทั้งหมด →</Link></div>{data.recent_dispensers.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>รหัส / ชื่อ</th><th>สถานะ</th><th>ชุดที่แจกได้</th><th>อัปเดต</th></tr></thead><tbody>{data.recent_dispensers.map((item) => <tr key={item.code}><td><Link className="text-link" href={`/admin/dispensers/${item.code}`}><strong>{item.code}</strong><br />{item.name || "ยังไม่ได้ตั้งชื่อ"}</Link></td><td><StatusBadge status={item.lifecycle} /><div style={{ marginTop: 4 }}><StatusBadge status={item.service_status} /></div></td><td>{item.available_bundle_count.toLocaleString("th-TH")} ชุด</td><td><span className="last-updated"><Clock3 size={13} />{formatThaiDateTime(item.updated_at)}</span></td></tr>)}</tbody></table></div> : <div className="empty-state">ยังไม่มีเครื่องในระบบ</div>}</section>

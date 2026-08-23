@@ -15,6 +15,7 @@ export const GET = apiRoute(async (request: Request) => {
     alerts: (dashboard.alerts as Awaited<ReturnType<typeof store.listAlerts>>).map(alertToApi),
     recent_dispensers: (dashboard.recentDispensers as Awaited<ReturnType<typeof store.listAdminDispensers>>["items"]).map(dispenserToAdminApi),
     recent_activity: (dashboard.recentActivity as Awaited<ReturnType<typeof store.listActivity>>["items"]).map(activityToApi),
-    completed_recipient_chart: dashboard.completedRecipientChart
+    completed_recipient_chart: dashboard.completedRecipientChart,
+    device_report_chart: dashboard.deviceReportChart
   }, { headers: { "Cache-Control": "no-store" } });
 });

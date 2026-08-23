@@ -969,6 +969,13 @@ export class MemoryStore {
       );
       return { serviceDay, recipientCount: recipients.size };
     });
+    const deviceReportChart = chartDays.map((serviceDay) => ({
+      serviceDay,
+      reportCount: Array.from(this.reports.values()).filter((report) =>
+        serviceDayFor(new Date(report.createdAt)) === serviceDay
+        && (!input.dispenserCode || report.dispenserCode === input.dispenserCode)
+      ).length
+    }));
     return {
       range,
       summary: {
@@ -981,7 +988,8 @@ export class MemoryStore {
       alerts: await this.listAlerts(),
       recentDispensers: clone(Array.from(this.dispensers.values()).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 5)),
       recentActivity: clone(this.activities.slice(0, 10)),
-      completedRecipientChart: chart
+      completedRecipientChart: chart,
+      deviceReportChart
     };
   }
 

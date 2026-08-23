@@ -101,4 +101,23 @@ describe("memory application store seams", () => {
     expect(snapshot.body).toContain("citizen_id,name");
     expect(snapshot.body).toContain("1101700201601,คุณสายฝน");
   });
+
+  it("counts each accepted device report once on the dashboard received day", async () => {
+    const dispenser = await publishedDispenser();
+    const report = {
+      reportId: 7,
+      serviceDay: "2020-01-01",
+      localTime: "2020-01-01T00:00:00+07:00",
+      citizenId: "0000000000001",
+      outcome: "failed" as const,
+      channels: [],
+      errors: ["test report"]
+    };
+    await store.recordDeviceReport(dispenser.code, report);
+    await store.recordDeviceReport(dispenser.code, report);
+
+    const dashboard = await store.dashboard({ range: "7d" }) as { deviceReportChart: Array<{ serviceDay: string; reportCount: number }> };
+    expect(dashboard.deviceReportChart.reduce((total, item) => total + item.reportCount, 0)).toBe(1);
+    expect(dashboard.deviceReportChart.find((item) => item.serviceDay === serviceDayFor())?.reportCount).toBe(1);
+  });
 });
