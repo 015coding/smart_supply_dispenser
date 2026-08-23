@@ -1,0 +1,8 @@
+import type { Config } from "drizzle-kit";
+
+export default {
+  schema: "./src/lib/db/schema.ts",
+  out: "./drizzle",
+  dialect: "postgresql",
+  dbCredentials: { url: process.env.DATABASE_URL ?? "postgres://user:password@localhost:5432/smart_supply_dispenser" }
+} satisfies Config;

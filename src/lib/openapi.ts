@@ -1,0 +1,97 @@
+const problemResponse = {
+  description: "Problem details",
+  content: { "application/problem+json": { schema: { $ref: "#/components/schemas/Problem" }, examples: { validation: { value: { status: 422, code: "validation_error", detail: "ข้อมูลไม่ถูกต้อง", trace_id: "trace-id" } } } } }
+};
+
+const authError = {
+  description: "Unauthorized",
+  content: {
+    "application/problem+json": {
+      schema: { $ref: "#/components/schemas/Problem" },
+      examples: { unauthorized: { value: { status: 401, code: "unauthorized", detail: "กรุณาเข้าสู่ระบบผู้ดูแล", trace_id: "trace-id" } } }
+    }
+  }
+};
+
+const pagination = { type: "object", required: ["page", "page_size", "total", "total_pages"], properties: { page: { type: "integer" }, page_size: { type: "integer" }, total: { type: "integer" }, total_pages: { type: "integer" } } };
+
+export const openapiDocument = {
+  openapi: "3.1.0",
+  info: { title: "พร้อมปัน API", version: "1.0.0", description: "REST API สำหรับ public website, admin workspace และเครื่องแจกสิ่งของ\n\nAuth.js routes ใต้ /api/auth/* เป็น protocol ของ Auth.js และไม่อยู่ใน application OpenAPI นี้" },
+  servers: [{ url: "/" }],
+  tags: [
+    { name: "Public", description: "ข้อมูลที่ผู้เข้าชมเว็บดูได้โดยไม่ต้องเข้าสู่ระบบ" },
+    { name: "Admin", description: "Dashboard และ operational alerts" },
+    { name: "Admin Dispensers", description: "เครื่อง แผน และสต็อก" },
+    { name: "Recipients", description: "รายชื่อผู้มีสิทธิ์และ import" },
+    { name: "Exports", description: "CSV ที่ต้องมี admin session" },
+    { name: "Device", description: "HTTPS contract สำหรับ ESP32/MicroPython" }
+  ],
+  paths: {
+    "/api/v1/public/dispensers": {
+      get: { tags: ["Public"], summary: "ค้นหาเครื่องที่เผยแพร่", parameters: [{ $ref: "#/components/parameters/Q" }, { $ref: "#/components/parameters/Province" }, { $ref: "#/components/parameters/District" }, { $ref: "#/components/parameters/Status" }, { $ref: "#/components/parameters/Page" }, { $ref: "#/components/parameters/PageSize" }], responses: { "200": { description: "รายการเครื่อง", content: { "application/json": { schema: { type: "object", properties: { items: { type: "array", items: { $ref: "#/components/schemas/PublicDispenser" } }, pagination: { $ref: "#/components/schemas/Pagination" }, facets: { type: "object", properties: { provinces: { type: "array", items: { type: "string" } }, districts: { type: "array", items: { type: "string" } } } } } } } } }, "422": problemResponse } }
+    },
+    "/api/v1/public/dispensers/{code}": {
+      get: { tags: ["Public"], summary: "ดูรายละเอียดเครื่อง", parameters: [{ $ref: "#/components/parameters/Code" }], responses: { "200": { description: "รายละเอียดเครื่อง", content: { "application/json": { schema: { $ref: "#/components/schemas/PublicDispenser" } } } }, "404": problemResponse } }
+    },
+    "/api/v1/admin/dashboard": { get: { tags: ["Admin"], security: [{ cookieAuth: [] }], summary: "สรุป dashboard", responses: { "200": { description: "Dashboard data" }, "401": authError } } },
+    "/api/v1/admin/alerts": { get: { tags: ["Admin"], security: [{ cookieAuth: [] }], summary: "รายการ alert", responses: { "200": { description: "Alerts" }, "401": authError } } },
+    "/api/v1/admin/alerts/{id}/acknowledge": { post: { tags: ["Admin"], security: [{ cookieAuth: [] }], summary: "รับทราบ alert", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: "Acknowledged alert" }, "401": authError, "403": problemResponse, "404": problemResponse } } },
+    "/api/v1/admin/dispensers": {
+      get: { tags: ["Admin Dispensers"], security: [{ cookieAuth: [] }], summary: "รายการเครื่องสำหรับผู้ดูแล", responses: { "200": { description: "Dispensers" }, "401": authError } },
+      post: { tags: ["Admin Dispensers"], security: [{ cookieAuth: [] }], summary: "สร้าง draft", requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/DispenserInput" }, example: { name: "จุดแจกชุมชน", channels: [] } } } }, responses: { "201": { description: "Created draft" }, "401": authError, "422": problemResponse } }
+    },
+    "/api/v1/admin/dispensers/{code}": {
+      get: { tags: ["Admin Dispensers"], security: [{ cookieAuth: [] }], summary: "ดูเครื่องสำหรับผู้ดูแล", parameters: [{ $ref: "#/components/parameters/Code" }], responses: { "200": { description: "Dispenser" }, "401": authError, "404": problemResponse } },
+      patch: { tags: ["Admin Dispensers"], security: [{ cookieAuth: [] }], summary: "แก้ข้อมูลเครื่อง", parameters: [{ $ref: "#/components/parameters/Code" }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/DispenserInput" } } } }, responses: { "200": { description: "Updated dispenser" }, "401": authError, "409": problemResponse, "422": problemResponse } }
+    },
+    "/api/v1/admin/dispensers/{code}/publish": { post: { tags: ["Admin Dispensers"], security: [{ cookieAuth: [] }], summary: "เผยแพร่เครื่อง", parameters: [{ $ref: "#/components/parameters/Code" }], responses: { "200": { description: "Published" }, "401": authError, "409": problemResponse, "422": problemResponse } } },
+    "/api/v1/admin/dispensers/{code}/archive": { post: { tags: ["Admin Dispensers"], security: [{ cookieAuth: [] }], summary: "เก็บถาวรเครื่อง", parameters: [{ $ref: "#/components/parameters/Code" }], responses: { "200": { description: "Archived" }, "401": authError, "409": problemResponse } } },
+    "/api/v1/admin/dispensers/{code}/image": { put: { tags: ["Admin Dispensers"], security: [{ cookieAuth: [] }], summary: "อัปโหลดรูป WebP", parameters: [{ $ref: "#/components/parameters/Code" }], requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["image"], properties: { image: { type: "string", format: "binary" } } } } } }, responses: { "200": { description: "Updated image" }, "401": authError, "413": problemResponse, "415": problemResponse } }, delete: { tags: ["Admin Dispensers"], security: [{ cookieAuth: [] }], summary: "ลบรูป", parameters: [{ $ref: "#/components/parameters/Code" }], responses: { "200": { description: "Deleted image" }, "401": authError } } },
+    "/api/v1/admin/dispensers/{code}/plans": { get: { tags: ["Admin Dispensers"], security: [{ cookieAuth: [] }], summary: "ดู plan revisions", parameters: [{ $ref: "#/components/parameters/Code" }], responses: { "200": { description: "Plan revisions" }, "401": authError } }, post: { tags: ["Admin Dispensers"], security: [{ cookieAuth: [] }], summary: "สร้าง plan revision", parameters: [{ $ref: "#/components/parameters/Code" }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/PlanInput" } } } }, responses: { "201": { description: "Created plan" }, "401": authError, "409": problemResponse, "422": problemResponse } } },
+    "/api/v1/admin/dispensers/{code}/stock-movements": { post: { tags: ["Admin Dispensers"], security: [{ cookieAuth: [] }], summary: "เติมหรือปรับสต็อก", parameters: [{ $ref: "#/components/parameters/Code" }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/StockMovement" } } } }, responses: { "201": { description: "Stock movement" }, "401": authError, "409": problemResponse, "422": problemResponse } } },
+    "/api/v1/admin/dispensers/{code}/device-state": { get: { tags: ["Admin Dispensers"], security: [{ cookieAuth: [] }], summary: "ดู heartbeat และ revisions", parameters: [{ $ref: "#/components/parameters/Code" }], responses: { "200": { description: "Device state" }, "401": authError } } },
+    "/api/v1/admin/recipients": { get: { tags: ["Recipients"], security: [{ cookieAuth: [] }], summary: "รายการผู้มีสิทธิ์แบบ masking", responses: { "200": { description: "Recipients" }, "401": authError } }, post: { tags: ["Recipients"], security: [{ cookieAuth: [] }], summary: "เพิ่มผู้มีสิทธิ์", requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/RecipientInput" } } } }, responses: { "201": { description: "Created recipient" }, "401": authError, "409": problemResponse, "422": problemResponse } } },
+    "/api/v1/admin/recipients/{id}": { get: { tags: ["Recipients"], security: [{ cookieAuth: [] }], summary: "ดูผู้มีสิทธิ์", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: "Recipient" }, "401": authError, "404": problemResponse } }, patch: { tags: ["Recipients"], security: [{ cookieAuth: [] }], summary: "แก้ผู้มีสิทธิ์", parameters: [{ $ref: "#/components/parameters/Id" }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/RecipientInput" } } } }, responses: { "200": { description: "Updated recipient" }, "401": authError, "422": problemResponse } }, delete: { tags: ["Recipients"], security: [{ cookieAuth: [] }], summary: "ลบถาวรพร้อม confirmation token", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "204": { description: "Deleted" }, "401": authError, "422": problemResponse } } },
+    "/api/v1/admin/eligibility-imports/preview": { post: { tags: ["Recipients"], security: [{ cookieAuth: [] }], summary: "ตรวจ CSV และสร้าง preview", requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["file"], properties: { file: { type: "string", format: "binary" } } } } } }, responses: { "201": { description: "Preview" }, "401": authError, "413": problemResponse, "422": problemResponse } } },
+    "/api/v1/admin/eligibility-imports/{id}": { get: { tags: ["Recipients"], security: [{ cookieAuth: [] }], summary: "ดู preview/import session", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: "Import session" }, "401": authError, "404": problemResponse } } },
+    "/api/v1/admin/eligibility-imports/{id}/commit": { post: { tags: ["Recipients"], security: [{ cookieAuth: [] }], summary: "ยืนยัน import แบบ idempotent", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: "Committed import" }, "401": authError, "409": problemResponse } } },
+    "/api/v1/admin/eligibility-imports/{id}/errors.csv": { get: { tags: ["Exports"], security: [{ cookieAuth: [] }], summary: "ดาวน์โหลดแถวผิด", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "200": { description: "CSV errors", content: { "text/csv": {} } }, "401": authError } } },
+    "/api/v1/admin/activity": { get: { tags: ["Admin"], security: [{ cookieAuth: [] }], summary: "ประวัติการทำรายการ", responses: { "200": { description: "Activity" }, "401": authError } } },
+    "/api/v1/admin/exports/{kind}": { get: { tags: ["Exports"], security: [{ cookieAuth: [] }], summary: "ดาวน์โหลด CSV", parameters: [{ name: "kind", in: "path", required: true, schema: { type: "string", enum: ["dispensers.csv", "stock.csv", "recipients.csv", "activity.csv"] } }], responses: { "200": { description: "CSV export", content: { "text/csv": {} } }, "401": authError } } },
+    "/api/device/v1/sync": { post: { tags: ["Device"], security: [{ deviceBearer: [], deviceCode: [] }], summary: "heartbeat และ desired state", requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/DeviceSync" } } } }, responses: { "200": { description: "Desired device state" }, "400": problemResponse, "401": { description: "Device authentication failed", content: { "application/problem+json": { schema: { $ref: "#/components/schemas/Problem" }, example: { status: 401, code: "device_unauthorized", detail: "อุปกรณ์ไม่ผ่านการยืนยันตัวตน", trace_id: "trace-id" } } } }, "429": problemResponse } } },
+    "/api/device/v1/eligibility-snapshot": { get: { tags: ["Device"], security: [{ deviceBearer: [], deviceCode: [] }], summary: "ดาวน์โหลด CSV snapshot", parameters: [{ name: "version", in: "query", required: true, schema: { type: "integer" } }], responses: { "200": { description: "UTF-8 CSV with Content-Length and SHA-256 headers", headers: { "X-Snapshot-Version": { schema: { type: "integer" } }, "X-Record-Count": { schema: { type: "integer" } }, "X-Content-SHA256": { schema: { type: "string" } } }, content: { "text/csv": {} } }, "401": authError, "404": problemResponse } } },
+    "/api/device/v1/authorize": { post: { tags: ["Device"], security: [{ deviceBearer: [], deviceCode: [] }], summary: "ตรวจสิทธิ์โดยไม่จอง", requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/DeviceAuthorize" }, example: { citizen_id: "0000000000000", service_day: "2026-08-23", local_time: "2026-08-23T15:30:00" } } } }, responses: { "200": { description: "Allow or business denial" }, "400": problemResponse, "401": authError } } },
+    "/api/device/v1/report": { post: { tags: ["Device"], security: [{ deviceBearer: [], deviceCode: [] }], summary: "ส่ง complete/partial/failed report แบบ idempotent", requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/DeviceReport" } } } }, responses: { "200": { description: "Reconciled stock" }, "400": problemResponse, "401": authError, "409": problemResponse } } }
+  },
+  components: {
+    securitySchemes: {
+      cookieAuth: { type: "apiKey", in: "cookie", name: "next-auth.session-token", description: "Auth.js JWT session cookie" },
+      deviceBearer: { type: "http", scheme: "bearer", bearerFormat: "shared-device-secret" },
+      deviceCode: { type: "apiKey", in: "header", name: "X-Device-Code" }
+    },
+    parameters: {
+      Code: { name: "code", in: "path", required: true, schema: { type: "string", pattern: "^DSP-[0-9]{4,}$" } },
+      Id: { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+      Q: { name: "q", in: "query", schema: { type: "string" } },
+      Province: { name: "province", in: "query", schema: { type: "string" } },
+      District: { name: "district", in: "query", schema: { type: "string" } },
+      Status: { name: "status", in: "query", schema: { type: "string", enum: ["all", "available", "out_of_stock", "temporarily_closed", "maintenance"] } },
+      Page: { name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 } },
+      PageSize: { name: "page_size", in: "query", schema: { type: "integer", minimum: 1, maximum: 100, default: 20 } }
+    },
+    schemas: {
+      Problem: { type: "object", required: ["status", "code", "detail", "trace_id"], properties: { type: { type: "string" }, title: { type: "string" }, status: { type: "integer" }, code: { type: "string" }, detail: { type: "string" }, field_errors: { type: "object", additionalProperties: { type: "string" } }, trace_id: { type: "string", format: "uuid" } } },
+      Pagination: pagination,
+      Channel: { type: "object", required: ["number", "supply_name", "unit", "balance", "enabled"], properties: { number: { type: "integer", minimum: 1, maximum: 3 }, supply_name: { type: "string" }, unit: { type: "string" }, capacity: { type: "integer" }, balance: { type: "integer" }, low_stock_threshold: { type: "integer" }, enabled: { type: "boolean" } } },
+      PublicDispenser: { type: "object", required: ["code", "name", "address", "province", "district", "status", "available_bundle_count", "channels"], properties: { code: { type: "string" }, name: { type: "string" }, address: { type: "string" }, province: { type: "string" }, district: { type: "string" }, latitude: { type: ["number", "null"] }, longitude: { type: ["number", "null"] }, contact: { type: ["string", "null"] }, notice: { type: ["string", "null"] }, image_url: { type: ["string", "null"], format: "uri" }, status: { type: "string", enum: ["available", "out_of_stock", "temporarily_closed", "maintenance"] }, available_bundle_count: { type: "integer" }, last_reported_at: { type: ["string", "null"], format: "date-time" }, channels: { type: "array", items: { $ref: "#/components/schemas/Channel" } } } },
+      DispenserInput: { type: "object", properties: { name: { type: "string" }, address: { type: "string" }, province: { type: "string" }, district: { type: "string" }, latitude: { type: ["number", "null"] }, longitude: { type: ["number", "null"] }, contact: { type: ["string", "null"] }, notice: { type: ["string", "null"] }, service_override: { type: "string", enum: ["normal", "temporarily_closed", "maintenance"] }, channels: { type: "array", maxItems: 3, items: { $ref: "#/components/schemas/Channel" } } } },
+      PlanInput: { type: "object", required: ["items"], properties: { effective_service_day: { type: "string", format: "date" }, items: { type: "array", minItems: 1, maxItems: 3, items: { type: "object", required: ["number", "enabled"], properties: { number: { type: "integer" }, enabled: { type: "boolean" }, quantity_per_bundle: { type: "integer", minimum: 1 } } } } } },
+      StockMovement: { type: "object", required: ["channel_number", "type"], properties: { channel_number: { type: "integer" }, type: { type: "string", enum: ["refill", "adjustment"] }, amount: { type: "integer" }, target_balance: { type: "integer" }, reason: { type: "string" } } },
+      RecipientInput: { type: "object", required: ["citizen_id", "name"], properties: { citizen_id: { type: "string", minLength: 13, maxLength: 20 }, name: { type: "string" }, active: { type: "boolean" } } },
+      DeviceSync: { type: "object", required: ["firmware_version", "client_version", "clock_ready", "applied_plan_version", "applied_eligibility_version", "applied_stock_revision", "local_stock"], properties: { firmware_version: { type: "string" }, client_version: { type: "string" }, clock_ready: { type: "boolean" }, applied_plan_version: { type: ["integer", "null"] }, applied_eligibility_version: { type: "integer" }, applied_stock_revision: { type: "integer" }, local_stock: { type: "object", additionalProperties: { type: "integer" } } } },
+      DeviceAuthorize: { type: "object", required: ["citizen_id", "service_day", "local_time"], properties: { citizen_id: { type: "string" }, service_day: { type: "string", format: "date" }, local_time: { type: "string" } } },
+      DeviceReport: { type: "object", required: ["report_id", "service_day", "local_time", "citizen_id", "outcome", "channels", "errors"], properties: { report_id: { type: "integer" }, service_day: { type: "string", format: "date" }, local_time: { type: "string" }, citizen_id: { type: "string" }, outcome: { type: "string", enum: ["complete", "partial", "failed"] }, channels: { type: "array", items: { type: "object", required: ["number", "result", "count_after"], properties: { number: { type: "integer" }, result: { type: "string", enum: ["success", "failed"] }, count_after: { type: "integer" } } } }, errors: { type: "array", items: { type: "string" } } } }
+    }
+  }
+} as const;

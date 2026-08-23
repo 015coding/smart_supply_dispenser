@@ -631,6 +631,18 @@ export class MemoryStore {
     return clone(this.findDispenser(code));
   }
 
+  async setDispenserImage(code: string, imageUrl: string | null, actor = "admin"): Promise<Dispenser> {
+    return this.withLock(async () => {
+      const dispenser = this.findDispenser(code);
+      if (dispenser.lifecycle === "archived") throw conflict("เครื่องที่เก็บถาวรแล้วแก้รูปไม่ได้", "archived_dispenser");
+      const previous = dispenser.imageUrl;
+      dispenser.imageUrl = imageUrl;
+      dispenser.updatedAt = now();
+      this.recordActivity(actor, imageUrl ? "upload_image" : "delete_image", "dispenser", dispenser.code, { image: { from: Boolean(previous), to: Boolean(imageUrl) } });
+      return clone(dispenser);
+    });
+  }
+
   async listAdminDispensers(input: { q?: string; lifecycle?: string; page?: number; pageSize?: number }): Promise<{ items: Dispenser[]; pagination: Pagination }> {
     const query = text(input.q).toLocaleLowerCase("th");
     const items = Array.from(this.dispensers.values())
@@ -716,6 +728,13 @@ export class MemoryStore {
       desiredStockRevision: dispenser.stockRevision,
       stockPendingSync: dispenser.deviceState.appliedStockRevision !== dispenser.stockRevision
     };
+  }
+
+  async markDeviceSeen(code: string): Promise<void> {
+    return this.withLock(async () => {
+      const dispenser = this.findDispenser(code);
+      dispenser.deviceState.lastSeenAt = now();
+    });
   }
 
   private touchDeviceLocked(dispenser: Dispenser, input: DeviceSyncInput): void {
