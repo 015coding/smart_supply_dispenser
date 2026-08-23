@@ -1,5 +1,22 @@
 # แผนพัฒนา “พร้อมปัน” เป็น Web Application พร้อม REST API และ OpenAPI
 
+## สถานะการลงมือทำ
+
+อัปเดตล่าสุด: 23 ส.ค. 2569
+
+| ระยะ | สถานะ | จุดเริ่มต้นถัดไป |
+| --- | --- | --- |
+| Repository และ Foundation scaffold | เสร็จ | ทำ domain rules, privacy utilities และ service-day utility ให้ผ่าน unit tests |
+| Domain, data model และ business services | กำลังทำ | เริ่มจาก `src/lib/domain/` และ `src/lib/server/store.ts` |
+| Authentication และ security boundary | รอ | หลัง store และ API response/error boundary พร้อม |
+| Public/Admin REST API และ OpenAPI | รอ | หลัง authentication boundary |
+| Public/Admin UI | รอ | หลัง REST API หลัก |
+| Recipient/CSV, dashboard, retention | รอ | หลัง dispenser และ API mutation |
+| Device API, simulator และ MicroPython client | รอ | หลัง store มี report/revision workflow |
+| Deploy และ hardening | รอ | หลัง full test/build และ code review |
+
+Checkpoint ล่าสุด: `d68401c` — `chore: scaffold next app and domain test seams` (pushed to `main`).
+
 ## 1. สรุปแนวทาง
 
 พัฒนาระบบใหม่จากสเปกใน `docs/PROJECT-SPEC.md`, Device contract ใน `docs/DEVICE-API.md` และใช้ Prototype 2 เป็น reference ด้านหน้าตาและ user flow โดยไม่ยกโค้ด prototype ที่เก็บข้อมูลใน memory มาใช้เป็น production code
