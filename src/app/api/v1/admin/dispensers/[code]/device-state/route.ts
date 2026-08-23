@@ -3,9 +3,10 @@ import { apiRoute } from "@/lib/api/route";
 import { requireAdmin } from "@/lib/server/auth-guard";
 import { store } from "@/lib/server/store";
 
-export const GET = apiRoute(async (request: Request, context: { params: { code: string } }) => {
+export const GET = apiRoute(async (request: Request, context: { params: Promise<{ code: string }> }) => {
   await requireAdmin(request);
-  const state = await store.getDeviceState(context.params.code);
+  const { code } = await context.params;
+  const state = await store.getDeviceState(code);
   return json({
     ...state,
     last_seen_at: state.lastSeenAt,

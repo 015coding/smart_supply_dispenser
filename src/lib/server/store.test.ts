@@ -89,6 +89,16 @@ describe("memory application store seams", () => {
     expect(committed.committedCount).toBe(1);
     const repeated = await store.commitEligibilityImport(String(preview.id));
     expect(repeated.committedCount).toBe(1);
-    expect((await store.listRecipients({})).pagination.total).toBe(1);
+    const recipients = await store.listRecipients({});
+    expect(recipients.pagination.total).toBe(1);
+    expect(await store.getRecipient(String(recipients.items[0]?.id))).toMatchObject({ name: "คุณสายฝน" });
+  });
+
+  it("includes recipient names in the device eligibility snapshot", async () => {
+    const dispenser = await publishedDispenser();
+    await store.createRecipient({ citizenId: "1101700201601", name: "คุณสายฝน" });
+    const snapshot = await store.eligibilitySnapshot(dispenser.code, 1);
+    expect(snapshot.body).toContain("citizen_id,name");
+    expect(snapshot.body).toContain("1101700201601,คุณสายฝน");
   });
 });

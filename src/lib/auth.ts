@@ -1,13 +1,13 @@
-import type { NextAuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
+import NextAuth, { type NextAuthConfig } from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 
-export const authOptions: NextAuthOptions = {
+const authConfig = {
   session: { strategy: "jwt", maxAge: 8 * 60 * 60 },
   secret: process.env.AUTH_SECRET,
   pages: { signIn: "/admin/login" },
   providers: [
-    CredentialsProvider({
+    Credentials({
       name: "Admin credentials",
       credentials: {
         username: { label: "ชื่อผู้ใช้", type: "text" },
@@ -16,8 +16,10 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         const username = process.env.ADMIN_USERNAME;
         const passwordHash = process.env.ADMIN_PASSWORD_HASH;
-        if (!username || !passwordHash || credentials?.username !== username || !credentials.password) return null;
-        const valid = await compare(credentials.password, passwordHash);
+        const inputUsername = typeof credentials?.username === "string" ? credentials.username : "";
+        const inputPassword = typeof credentials?.password === "string" ? credentials.password : "";
+        if (!username || !passwordHash || inputUsername !== username || !inputPassword) return null;
+        const valid = await compare(inputPassword, passwordHash);
         return valid ? { id: "global-admin", name: username, role: "global_admin" } : null;
       }
     })
@@ -32,4 +34,6 @@ export const authOptions: NextAuthOptions = {
       return session;
     }
   }
-};
+} satisfies NextAuthConfig;
+
+export const { handlers, auth } = NextAuth(authConfig);

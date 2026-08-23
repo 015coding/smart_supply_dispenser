@@ -1,4 +1,5 @@
 import { Clock3, MapPin, ArrowRight } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import type { PublicDispenser } from "@/lib/domain/types";
 import { formatThaiDateTime } from "@/lib/domain/date";
@@ -7,7 +8,7 @@ import { StatusBadge } from "./StatusBadge";
 
 export function DispenserCard({ dispenser }: { dispenser: PublicDispenser }) {
   return <Link className="dispenser-card" href={`/machines/${dispenser.code}`} aria-label={`ดูรายละเอียด ${dispenser.name}`}>
-    <div className="dispenser-card-media">{dispenser.imageUrl ? <img src={dispenser.imageUrl} alt={`รูป ${dispenser.name}`} /> : <DispenserPlaceholder />}</div>
+    <div className="dispenser-card-media">{dispenser.imageUrl ? <Image src={dispenser.imageUrl} alt={`รูป ${dispenser.name}`} fill sizes="(max-width: 720px) 100vw, (max-width: 980px) 50vw, 33vw" /> : <DispenserPlaceholder />}</div>
     <div className="dispenser-card-body">
       <div className="card-code">{dispenser.code}</div>
       <div style={{ marginTop: 7 }}><StatusBadge status={dispenser.status} /></div>

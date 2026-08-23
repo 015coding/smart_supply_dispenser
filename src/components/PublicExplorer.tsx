@@ -12,6 +12,54 @@ interface ExplorerProps {
   initialTotal: number;
 }
 
+interface PublicApiDispenser {
+  code: string;
+  name: string;
+  address: string;
+  province: string;
+  district: string;
+  latitude: number | null;
+  longitude: number | null;
+  contact: string | null;
+  notice: string | null;
+  image_url: string | null;
+  status: ServiceStatus;
+  available_bundle_count: number;
+  last_reported_at: string | null;
+  channels: Array<{
+    number: number;
+    supply_name: string;
+    unit: string;
+    balance: number;
+    enabled: boolean;
+  }>;
+}
+
+function publicDispenserFromApi(item: PublicApiDispenser): PublicDispenser {
+  return {
+    code: item.code,
+    name: item.name,
+    address: item.address,
+    province: item.province,
+    district: item.district,
+    latitude: item.latitude,
+    longitude: item.longitude,
+    contact: item.contact,
+    notice: item.notice,
+    imageUrl: item.image_url,
+    status: item.status,
+    availableBundleCount: item.available_bundle_count,
+    lastReportedAt: item.last_reported_at,
+    channels: item.channels.map((channel) => ({
+      number: channel.number,
+      supplyName: channel.supply_name,
+      unit: channel.unit,
+      balance: channel.balance,
+      enabled: channel.enabled
+    }))
+  };
+}
+
 const statusOptions: Array<{ value: "all" | ServiceStatus; label: string }> = [
   { value: "all", label: "ทุกสถานะ" },
   { value: "available", label: "พร้อมแจก" },
@@ -40,8 +88,8 @@ export function PublicExplorer({ initialItems, initialFacets, initialTotal }: Ex
       if (district !== "all") params.set("district", district);
       if (status !== "all") params.set("status", status);
       try {
-        const result = await apiFetch<{ items: PublicDispenser[]; pagination: { total: number }; facets: typeof initialFacets }>(`/api/v1/public/dispensers?${params.toString()}`, { signal: controller.signal });
-        setItems(result.items); setFacets(result.facets); setTotal(result.pagination.total);
+        const result = await apiFetch<{ items: PublicApiDispenser[]; pagination: { total: number }; facets: typeof initialFacets }>(`/api/v1/public/dispensers?${params.toString()}`, { signal: controller.signal });
+        setItems(result.items.map(publicDispenserFromApi)); setFacets(result.facets); setTotal(result.pagination.total);
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError")) setItems([]);
       } finally { setLoading(false); }

@@ -6,10 +6,12 @@ coverage/
 playwright-report/
 test-results/
 .vercel/
+.data/
 
 .env
 .env.*
 !.env.example
+!.env.compose.example
 
 *.log
 .DS_Store

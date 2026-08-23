@@ -53,10 +53,28 @@ export async function readJson<T>(request: Request): Promise<T> {
 }
 
 export function assertSameOrigin(request: Request): void {
-  const origin = request.headers.get("origin");
-  if (!origin) return;
-  const requestOrigin = new URL(request.url).origin;
-  if (origin !== requestOrigin) throw new AppError(403, "csrf_rejected", "คำขอจากต้นทางนี้ไม่ได้รับอนุญาต");
+  const originHeader = request.headers.get("origin");
+  if (!originHeader) return;
+
+  let origin: string;
+  try {
+    origin = new URL(originHeader).origin;
+  } catch {
+    throw new AppError(403, "csrf_rejected", "คำขอจากต้นทางนี้ไม่ได้รับอนุญาต");
+  }
+
+  const allowedOrigins = new Set([new URL(request.url).origin]);
+  const configuredUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;
+  if (configuredUrl) {
+    try {
+      allowedOrigins.add(new URL(configuredUrl).origin);
+    } catch {
+      // Auth.js reports malformed URL configuration separately. It must not
+      // weaken this check by accepting arbitrary forwarded host headers.
+    }
+  }
+
+  if (!allowedOrigins.has(origin)) throw new AppError(403, "csrf_rejected", "คำขอจากต้นทางนี้ไม่ได้รับอนุญาต");
 }
 
 export function asApiError(error: unknown): Response {

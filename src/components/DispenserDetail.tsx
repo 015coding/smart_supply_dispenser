@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { ArrowLeft, Clock3, MapPin, Phone, Megaphone } from "lucide-react";
 import Link from "next/link";
 import type { PublicDispenser } from "@/lib/domain/types";
@@ -15,7 +16,7 @@ export function DispenserDetail({ dispenser }: { dispenser: PublicDispenser }) {
     <section className="detail-hero"><div className="app-container"><Link className="back-link" href="/"><ArrowLeft size={16} /> กลับไปค้นหาเครื่อง</Link><div className="detail-heading"><div><div className="card-code">{dispenser.code}</div><h1>{dispenser.name}</h1></div><StatusBadge status={dispenser.status} /></div></div></section>
     <main className="app-container detail-layout">
       <div style={{ display: "grid", gap: 16 }}>
-        <div className="detail-panel"><div className="detail-image">{dispenser.imageUrl ? <img src={dispenser.imageUrl} alt={`รูป ${dispenser.name}`} /> : <DispenserPlaceholder />}</div><div className="panel-content"><div className="panel-title"><h2>จำนวนชุดที่แจกได้</h2><span className="last-updated"><Clock3 size={13} /> {formatThaiDateTime(dispenser.lastReportedAt)}</span></div><div className="bundle-number"><strong>{dispenser.availableBundleCount.toLocaleString("th-TH")}</strong><span>ชุดสิ่งของช่วยเหลือ</span></div><div className="channel-list">{dispenser.channels.filter((channel) => channel.enabled).map((channel) => <div className="channel-row" key={channel.number}><div><strong>ช่อง {channel.number} · {channel.supplyName || "สิ่งของ"}</strong><small>หน่วย {channel.unit}</small></div><div className="channel-balance">{channel.balance.toLocaleString("th-TH")}<small>{channel.unit}</small></div></div>)}</div></div></div>
+        <div className="detail-panel"><div className="detail-image">{dispenser.imageUrl ? <Image src={dispenser.imageUrl} alt={`รูป ${dispenser.name}`} fill sizes="(max-width: 720px) 100vw, 60vw" /> : <DispenserPlaceholder />}</div><div className="panel-content"><div className="panel-title"><h2>จำนวนชุดที่แจกได้</h2><span className="last-updated"><Clock3 size={13} /> {formatThaiDateTime(dispenser.lastReportedAt)}</span></div><div className="bundle-number"><strong>{dispenser.availableBundleCount.toLocaleString("th-TH")}</strong><span>ชุดสิ่งของช่วยเหลือ</span></div><div className="channel-list">{dispenser.channels.filter((channel) => channel.enabled).map((channel) => <div className="channel-row" key={channel.number}><div><strong>ช่อง {channel.number} · {channel.supplyName || "สิ่งของ"}</strong><small>หน่วย {channel.unit}</small></div><div className="channel-balance">{channel.balance.toLocaleString("th-TH")}<small>{channel.unit}</small></div></div>)}</div></div></div>
         {dispenser.notice && <div className="notice"><Megaphone size={15} style={{ verticalAlign: "-3px", marginRight: 6 }} />{dispenser.notice}</div>}
       </div>
       <div style={{ display: "grid", gap: 16, alignContent: "start" }}>

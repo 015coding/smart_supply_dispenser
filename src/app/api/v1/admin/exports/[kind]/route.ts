@@ -4,9 +4,9 @@ import { requireAdmin } from "@/lib/server/auth-guard";
 import { AppError } from "@/lib/server/errors";
 import { store } from "@/lib/server/store";
 
-export const GET = apiRoute(async (request: Request, context: { params: { kind: string } }) => {
+export const GET = apiRoute(async (request: Request, context: { params: Promise<{ kind: string }> }) => {
   await requireAdmin(request);
-  const kind = context.params.kind;
+  const { kind } = await context.params;
   const exportsByKind: Record<string, () => Promise<string>> = {
     "dispensers.csv": () => store.exportDispensersCsv(),
     "stock.csv": () => store.exportStockCsv(),

@@ -10,14 +10,14 @@
 | Domain, data model และ business services | กำลังทำ (core rules/store เสร็จ) | เพิ่ม Drizzle schema/migration และ API validation boundary |
 | Authentication และ security boundary | รอ | หลัง store และ API response/error boundary พร้อม |
 | Public/Admin REST API และ OpenAPI | รอ | หลัง authentication boundary |
-| Public/Admin UI | กำลังทำ (shared shell/public components เริ่มแล้ว) | ต่อด้วย `src/app/page.tsx`, `/machines/[code]` และ Admin pages โดยใช้ components ใน `src/components/` |
+| Public/Admin UI | กำลังทำ (public routes และ Admin workspace รุ่นแรกเสร็จ) | เพิ่ม E2E, image workflow, plan mutation และ recipient/CSV screens |
 | Recipient/CSV, dashboard, retention | รอ | หลัง dispenser และ API mutation |
 | Device API, simulator และ MicroPython client | รอ | หลัง store มี report/revision workflow |
 | Deploy และ hardening | รอ | หลัง full test/build และ code review |
 
-Checkpoint ล่าสุด: `0034dab` — `feat: add database schema security boundary and API contract` (pushed to `main`). Core store อยู่ที่ `877d4cc`.
+Checkpoint ล่าสุดใน `main`: `afe0a84` — `feat: add public UI foundation` (working tree มีการต่อ UI จาก checkpoint นี้). Core store อยู่ที่ `877d4cc`.
 
-จุดหยุดสำหรับ handoff รอบนี้: เพิ่ม `src/app/layout.tsx`, `src/app/globals.css` และ public UI components (`Brand`, `PublicExplorer`, `DispenserCard`, `DispenserDetail`, `MapView`, `StatusBadge`) แล้ว แต่ยังไม่ได้เชื่อม page routes และยังไม่ได้ run production build/E2E. เริ่มต่อจากการทำหน้า `/`, `/machines/[code]`, `/admin/*` และ login โดยตรวจ `npm run typecheck` ก่อนทุกระยะ.
+จุดหยุดสำหรับ handoff รอบนี้: เชื่อมหน้า `/` และ `/machines/[code]` กับ `MemoryStore` พร้อม not-found state, เพิ่ม `/admin/login`, Admin shell, dashboard, dispenser list/editor, recipients และ activity screens ที่อ่าน REST API แล้ว. อัปเกรดเป็น Next.js `16.3.2` + Turbopack, ใช้ `proxy.ts`, async route params, ESLint CLI และ Auth.js `5.0.0-beta.32` แล้ว. `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` และ `npm ci --dry-run` ผ่าน; smoke test หน้า `/`, detail, login/session และ public/Admin API ผ่าน. งานถัดไปคือทำ E2E login → draft → publish → public, เพิ่ม image/plan/recipient CSV workflows และเตรียมเปลี่ยน MemoryStore เป็น Drizzle service.
 
 ## 1. สรุปแนวทาง
 

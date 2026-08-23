@@ -4,8 +4,9 @@ import { requireAdmin } from "@/lib/server/auth-guard";
 import { dispenserToAdminApi } from "@/lib/api/mappers";
 import { store } from "@/lib/server/store";
 
-export const POST = apiRoute(async (request: Request, context: { params: { code: string } }) => {
+export const POST = apiRoute(async (request: Request, context: { params: Promise<{ code: string }> }) => {
   const admin = await requireAdmin(request);
   assertSameOrigin(request);
-  return json(dispenserToAdminApi(await store.archiveDispenser(context.params.code, admin.actor)), { headers: { "Cache-Control": "no-store" } });
+  const { code } = await context.params;
+  return json(dispenserToAdminApi(await store.archiveDispenser(code, admin.actor)), { headers: { "Cache-Control": "no-store" } });
 });

@@ -1,7 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import {
   addServiceDays,
-  formatServiceDay,
   isServiceDay,
   serviceDayFor
 } from "@/lib/domain/date";
@@ -41,7 +40,6 @@ import type {
   RecipientRecord,
   ServiceOverride,
   StockMovement,
-  StockMovementType
 } from "@/lib/domain/types";
 import { AppError, conflict, notFound, validationError } from "@/lib/server/errors";
 
@@ -330,6 +328,55 @@ export class MemoryStore {
   private eligibilityVersion = 0;
   private codeSequence = 1;
   private lock: Promise<unknown> = Promise.resolve();
+
+  constructor() {
+    if (process.env.SEED_DEMO_DATA === "true") this.seedDemoData();
+  }
+
+  private seedDemoData(): void {
+    const timestamp = now();
+    const channels: DispenserChannel[] = [
+      { number: 1, supplyName: "น้ำดื่ม", unit: "ขวด", capacity: 40, balance: 24, lowStockThreshold: 10, enabled: true },
+      { number: 2, supplyName: "อาหารพร้อมทาน", unit: "กล่อง", capacity: 30, balance: 18, lowStockThreshold: 8, enabled: true },
+      { number: 3, supplyName: "ชุดปฐมพยาบาล", unit: "ชุด", capacity: 30, balance: 20, lowStockThreshold: 5, enabled: true }
+    ];
+    const dispenser: Dispenser = {
+      id: randomUUID(),
+      code: "DSP-0001",
+      name: "ศูนย์พักพิงคลองสอง",
+      address: "ลานอเนกประสงค์หน้าศูนย์พักพิงคลองสอง",
+      province: "ปทุมธานี",
+      district: "คลองหลวง",
+      latitude: 14.0692,
+      longitude: 100.6475,
+      contact: "02 000 0001",
+      notice: "เปิดรับผู้มีสิทธิ์ตลอด 24 ชั่วโมง",
+      imageUrl: null,
+      lifecycle: "published",
+      serviceOverride: "normal",
+      deviceApiEnabledForTesting: false,
+      channels,
+      plans: [{
+        version: 1,
+        effectiveServiceDay: serviceDayFor(),
+        createdAt: timestamp,
+        items: channels.map((channel) => ({
+          number: channel.number,
+          supplyName: channel.supplyName,
+          unit: channel.unit,
+          quantityPerBundle: 1,
+          enabled: channel.enabled
+        }))
+      }],
+      stockRevision: 0,
+      lastReportedAt: timestamp,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      deviceState: createDefaultDeviceState()
+    };
+    this.dispensers.set(dispenser.code, dispenser);
+    this.codeSequence = 2;
+  }
 
   private withLock<T>(operation: () => T | Promise<T>): Promise<T> {
     const result = this.lock.then(operation, operation);
@@ -776,7 +823,7 @@ export class MemoryStore {
     const rows = Array.from(this.recipients.values())
       .filter((recipient) => recipient.active)
       .sort((a, b) => a.id.localeCompare(b.id))
-      .map((recipient) => `${revealCitizenId(recipient.citizenIdCiphertext, encryptionSecret())},`);
+      .map((recipient) => csvRow([revealCitizenId(recipient.citizenIdCiphertext, encryptionSecret()), recipient.name]));
     const body = `citizen_id,name\n${rows.join("\n")}${rows.length ? "\n" : ""}`;
     return { body, version, recordCount: rows.length, sha256: createHash("sha256").update(body, "utf8").digest("hex") };
   }
@@ -1103,8 +1150,9 @@ export class MemoryStore {
           continue;
         }
         const timestamp = now();
-        this.recipients.set(randomUUID(), {
-          id: randomUUID(),
+        const recipientId = randomUUID();
+        this.recipients.set(recipientId, {
+          id: recipientId,
           citizenIdCiphertext: protectCitizenId(row.citizenId, encryptionSecret()),
           citizenIdLookupHash: lookup,
           name: row.name,
@@ -1197,4 +1245,11 @@ export class MemoryStore {
   }
 }
 
-export const store = new MemoryStore();
+const globalStore = globalThis as typeof globalThis & {
+  __smartSupplyDispenserStore?: MemoryStore;
+};
+
+// Next.js can evaluate the store module in more than one route bundle within the
+// same server process. Keep one process-wide instance so writes made through an
+// API route are immediately visible to Server Components and other API routes.
+export const store = globalStore.__smartSupplyDispenserStore ??= new MemoryStore();
