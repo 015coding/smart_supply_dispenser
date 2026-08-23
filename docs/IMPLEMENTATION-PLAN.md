@@ -7,7 +7,7 @@
 | ระยะ | สถานะ | จุดเริ่มต้นถัดไป |
 | --- | --- | --- |
 | Repository และ Foundation scaffold | เสร็จ | ทำ domain rules, privacy utilities และ service-day utility ให้ผ่าน unit tests |
-| Domain, data model และ business services | กำลังทำ | เริ่มจาก `src/lib/domain/` และ `src/lib/server/store.ts` |
+| Domain, data model และ business services | กำลังทำ (core rules/store เสร็จ) | เพิ่ม Drizzle schema/migration และ API validation boundary |
 | Authentication และ security boundary | รอ | หลัง store และ API response/error boundary พร้อม |
 | Public/Admin REST API และ OpenAPI | รอ | หลัง authentication boundary |
 | Public/Admin UI | รอ | หลัง REST API หลัก |
@@ -15,7 +15,7 @@
 | Device API, simulator และ MicroPython client | รอ | หลัง store มี report/revision workflow |
 | Deploy และ hardening | รอ | หลัง full test/build และ code review |
 
-Checkpoint ล่าสุด: `d68401c` — `chore: scaffold next app and domain test seams` (pushed to `main`).
+Checkpoint ล่าสุด: `1e7fd7f` — `chore: stabilize vitest type configuration` (pushed to `main`). Core store อยู่ที่ `877d4cc`.
 
 ## 1. สรุปแนวทาง
 
